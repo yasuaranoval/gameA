@@ -6,11 +6,16 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="googlebot" content="noindex, nofollow">
 <title>Asteroids MVP</title>
-<link rel="stylesheet" href="style.css?v=003">
+<link rel="stylesheet" href="style.css?v=004">
 </head>
 <body>
 <!-- Client/UI layer -->
 <canvas id="gameCanvas"></canvas>
+
+<div class="character-assets" aria-hidden="true">
+  <img id="seCharacterImage" src="SE%20Image.png" alt="">
+  <img id="revopsCharacterImage" src="revops%20image.png" alt="">
+</div>
 
 <div id="hud">
   <span id="hudLevel">Level 1: Amsterdam</span>
@@ -22,6 +27,23 @@
 
 <div id="levelBanner"></div>
 
+<div id="characterSelectScreen" class="overlay-screen show">
+  <div class="character-select-panel">
+    <p class="eyebrow">Choose your fighter</p>
+    <h1>Who is taking on the tickets?</h1>
+    <div class="character-options">
+      <button class="character-option" data-character="se">
+        <img src="SE%20Image.png" alt="Sales Engineer character">
+        <span>Sales Engineer</span>
+      </button>
+      <button class="character-option" data-character="revops">
+        <img src="revops%20image.png" alt="RevOps character">
+        <span>RevOps</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="gameOverScreen">
   <h1>Game Over</h1>
   <p id="finalScore">Final Score: 0</p>
@@ -29,6 +51,6 @@
   <button id="restartBtn">Restart</button>
 </div>
 
-<script src="app.js?v=004"></script>
+<script src="app.js?v=005"></script>
 </body>
 </html>

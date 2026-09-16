@@ -20,6 +20,10 @@ const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreEl = document.getElementById('finalScore');
 const restartBtn = document.getElementById('restartBtn');
 const powerupBanner = document.getElementById('powerupBanner');
+const seCharacterImage = document.getElementById('seCharacterImage');
+const revopsCharacterImage = document.getElementById('revopsCharacterImage');
+const characterSelectScreen = document.getElementById('characterSelectScreen');
+const characterOptions = document.querySelectorAll('.character-option');
 
 const HIGH_SCORE_KEY = 'asteroidsMvpHighScore';
 
@@ -29,6 +33,13 @@ function rectsOverlap(a, b) {
 
 function distance(x1, y1, x2, y2) {
   return Math.hypot(x2 - x1, y2 - y1);
+}
+
+function drawCharacterImage(image, x, y, height) {
+  if (!image.complete || image.naturalWidth === 0) return false;
+  const width = height * (image.naturalWidth / image.naturalHeight);
+  ctx.drawImage(image, x - width / 2, y - height / 2, width, height);
+  return true;
 }
 
 // ----------------------- City data (Data layer: level -> city, in-memory) -----------------------
@@ -382,9 +393,11 @@ function drawNeuesRathaus(ctx, x, y, w, h) {
 
 // ----------------------- Player -----------------------
 class Player {
-  constructor(x, y) {
+  constructor(x, y, character) {
     this.x = x;
     this.y = y;
+    this.character = character;
+    this.image = character === 'revops' ? revopsCharacterImage : seCharacterImage;
     this.size = 24;
     this.baseSpeed = 4;
     this.speed = this.baseSpeed;
@@ -466,8 +479,10 @@ class Player {
   }
 
   draw() {
-    ctx.fillStyle = '#4caf50';
-    ctx.fillRect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+    if (!drawCharacterImage(this.image, this.x, this.y, 86)) {
+      ctx.fillStyle = '#4caf50';
+      ctx.fillRect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+    }
   }
 }
 
@@ -531,8 +546,20 @@ class Enemy {
   }
 
   draw() {
-    ctx.fillStyle = '#e53935';
-    ctx.fillRect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+    const width = 52;
+    const height = 38;
+    const left = this.x - width / 2;
+    const top = this.y - height / 2;
+
+    ctx.fillStyle = '#f0c94b';
+    ctx.strokeStyle = '#5a4316';
+    ctx.lineWidth = 2;
+    ctx.fillRect(left, top, width, height);
+    ctx.strokeRect(left, top, width, height);
+    ctx.fillStyle = '#fff5c7';
+    ctx.fillRect(left + 5, top + 6, width - 10, 4);
+    ctx.fillRect(left + 5, top + 15, width - 20, 4);
+    ctx.fillRect(left + 5, top + 24, width - 14, 4);
   }
 }
 
@@ -635,11 +662,11 @@ class GameEngine {
     this.bannerTimer = 0;
     this.awaitingLevelStart = false;
     this.pendingLevel = null;
+    this.selectedCharacter = null;
 
     hudHighScore.textContent = `High Score: ${this.highScore}`;
 
     this.bindInput();
-    this.startLevel(1, true);
   }
 
   bindInput() {
@@ -673,6 +700,15 @@ class GameEngine {
       this.fireRequested = true;
     });
     restartBtn.addEventListener('click', () => this.restart());
+    characterOptions.forEach(option => {
+      option.addEventListener('click', () => this.chooseCharacter(option.dataset.character));
+    });
+  }
+
+  chooseCharacter(character) {
+    this.selectedCharacter = character;
+    characterSelectScreen.classList.remove('show');
+    this.startLevel(1, true);
   }
 
   spawnObstacles(count) {
@@ -709,7 +745,7 @@ class GameEngine {
       this.player.x = canvas.width / 2;
       this.player.y = canvas.height / 2;
     } else {
-      this.player = new Player(canvas.width / 2, canvas.height / 2);
+      this.player = new Player(canvas.width / 2, canvas.height / 2, this.selectedCharacter);
     }
 
     this.showLevelBanner(`Level ${n}`, false);
@@ -751,7 +787,7 @@ class GameEngine {
   }
 
   update() {
-    if (this.gameOver) return;
+    if (this.gameOver || !this.player) return;
     if (this.awaitingLevelStart) return;
 
     if (this.bannerTimer > 0) {
@@ -864,7 +900,8 @@ class GameEngine {
     levelBanner.classList.remove('waiting');
     powerupBanner.textContent = '';
     this.enemySpawnTimer = 0;
-    this.startLevel(1, true);
+    this.player = null;
+    characterSelectScreen.classList.add('show');
   }
 
   draw() {
@@ -874,7 +911,7 @@ class GameEngine {
     this.powerUps.forEach(p => p.draw());
     this.enemies.forEach(e => e.draw());
     this.bullets.forEach(b => b.draw());
-    this.player.draw();
+    if (this.player) this.player.draw();
   }
 
   loop() {
