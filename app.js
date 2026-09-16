@@ -31,6 +31,355 @@ function distance(x1, y1, x2, y2) {
   return Math.hypot(x2 - x1, y2 - y1);
 }
 
+// ----------------------- City data (Data layer: level -> city, in-memory) -----------------------
+const CITIES = ['Amsterdam', 'Barcelona', 'Berlin', 'Dublin', 'London', 'Madrid', 'Munich'];
+
+function cityForLevel(level) {
+  return CITIES[(level - 1) % CITIES.length];
+}
+
+// ----------------------- Landmark silhouettes (Client/UI: vector obstacle art) -----------------------
+// Each drawer renders a simplified landmark silhouette inside the (x, y, w, h) box
+// that also defines the obstacle's collision rect, so visuals and hitboxes stay in sync.
+const LANDMARKS = {
+  Amsterdam: [drawCanalHouse, drawWindmill],
+  Barcelona: [drawSagradaFamilia, drawParkGuell],
+  Berlin: [drawBrandenburgGate, drawTvTower],
+  Dublin: [drawHapennyBridge, drawSamuelBeckettBridge],
+  London: [drawBigBen, drawLondonEye],
+  Madrid: [drawPuertaAlcala, drawMetropolisBuilding],
+  Munich: [drawFrauenkirche, drawNeuesRathaus],
+};
+
+function drawCanalHouse(ctx, x, y, w, h) {
+  ctx.fillStyle = '#8a6d4f';
+  ctx.strokeStyle = '#3a2e20';
+  ctx.lineWidth = 2;
+  const gableH = h * 0.28;
+  ctx.beginPath();
+  ctx.moveTo(x, y + gableH);
+  ctx.lineTo(x + w / 2, y);
+  ctx.lineTo(x + w, y + gableH);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x, y + h);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = '#4a3a2a';
+  ctx.fillRect(x + w * 0.42, y + h * 0.66, w * 0.16, h * 0.34);
+
+  ctx.fillStyle = '#cfe0ea';
+  const winRows = [0.42, 0.62];
+  for (const ry of winRows) {
+    ctx.fillRect(x + w * 0.18, y + h * ry, w * 0.14, h * 0.12);
+    ctx.fillRect(x + w * 0.68, y + h * ry, w * 0.14, h * 0.12);
+  }
+}
+
+function drawWindmill(ctx, x, y, w, h) {
+  const cx = x + w / 2;
+  const baseY = y + h;
+  ctx.fillStyle = '#9c8465';
+  ctx.strokeStyle = '#3a2e20';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - w * 0.22, baseY);
+  ctx.lineTo(cx - w * 0.12, y + h * 0.2);
+  ctx.lineTo(cx + w * 0.12, y + h * 0.2);
+  ctx.lineTo(cx + w * 0.22, baseY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  const hubY = y + h * 0.2;
+  ctx.strokeStyle = '#e8d9b0';
+  ctx.lineWidth = 3;
+  for (let i = 0; i < 4; i++) {
+    const angle = (Math.PI / 2) * i + Math.PI / 4;
+    ctx.beginPath();
+    ctx.moveTo(cx, hubY);
+    ctx.lineTo(cx + Math.cos(angle) * w * 0.4, hubY + Math.sin(angle) * h * 0.4);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#e8d9b0';
+  ctx.beginPath();
+  ctx.arc(cx, hubY, 3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawSagradaFamilia(ctx, x, y, w, h) {
+  ctx.fillStyle = '#b89a6b';
+  ctx.strokeStyle = '#5c4a2e';
+  ctx.lineWidth = 2;
+  const spireCount = 3;
+  const spireW = w / spireCount;
+  for (let i = 0; i < spireCount; i++) {
+    const sx = x + i * spireW;
+    const peakH = h * (0.55 + (i % 2 === 0 ? 0.4 : 0.15));
+    ctx.beginPath();
+    ctx.moveTo(sx + spireW * 0.15, y + h);
+    ctx.lineTo(sx + spireW * 0.5, y + h - peakH);
+    ctx.lineTo(sx + spireW * 0.85, y + h);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#e0c98f';
+    ctx.beginPath();
+    ctx.arc(sx + spireW * 0.5, y + h - peakH, spireW * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#b89a6b';
+  }
+}
+
+function drawParkGuell(ctx, x, y, w, h) {
+  ctx.fillStyle = '#8fae7a';
+  ctx.strokeStyle = '#4a5c3a';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y + h);
+  ctx.quadraticCurveTo(x + w * 0.2, y + h * 0.3, x + w * 0.5, y + h * 0.4);
+  ctx.quadraticCurveTo(x + w * 0.8, y + h * 0.5, x + w, y + h);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.strokeStyle = '#d98a8a';
+  ctx.lineWidth = 2;
+  const dots = [[0.3, 0.55], [0.45, 0.48], [0.6, 0.58], [0.72, 0.5]];
+  for (const [dx, dy] of dots) {
+    ctx.beginPath();
+    ctx.arc(x + w * dx, y + h * dy, w * 0.05, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+function drawBrandenburgGate(ctx, x, y, w, h) {
+  ctx.fillStyle = '#c9c2a8';
+  ctx.strokeStyle = '#4a463a';
+  ctx.lineWidth = 2;
+  const lintelH = h * 0.18;
+  ctx.fillRect(x, y, w, lintelH);
+  ctx.strokeRect(x, y, w, lintelH);
+
+  const colCount = 5;
+  const colW = w * 0.12;
+  const gap = (w - colCount * colW) / (colCount - 1);
+  for (let i = 0; i < colCount; i++) {
+    const cx = x + i * (colW + gap);
+    ctx.fillRect(cx, y + lintelH, colW, h - lintelH);
+    ctx.strokeRect(cx, y + lintelH, colW, h - lintelH);
+  }
+}
+
+function drawTvTower(ctx, x, y, w, h) {
+  const cx = x + w / 2;
+  ctx.strokeStyle = '#c9c2a8';
+  ctx.lineWidth = Math.max(2, w * 0.06);
+  ctx.beginPath();
+  ctx.moveTo(cx, y + h);
+  ctx.lineTo(cx, y + h * 0.3);
+  ctx.stroke();
+
+  ctx.fillStyle = '#d9d2b8';
+  ctx.beginPath();
+  ctx.arc(cx, y + h * 0.22, w * 0.22, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#4a463a';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.strokeStyle = '#d9d2b8';
+  ctx.lineWidth = Math.max(2, w * 0.03);
+  ctx.beginPath();
+  ctx.moveTo(cx, y + h * 0.05);
+  ctx.lineTo(cx, y + h * 0.3);
+  ctx.stroke();
+}
+
+function drawHapennyBridge(ctx, x, y, w, h) {
+  ctx.strokeStyle = '#a3a89c';
+  ctx.lineWidth = Math.max(2, h * 0.05);
+  ctx.beginPath();
+  ctx.moveTo(x, y + h);
+  ctx.quadraticCurveTo(x + w / 2, y + h * 0.15, x + w, y + h);
+  ctx.stroke();
+
+  ctx.lineWidth = 2;
+  const railCount = 6;
+  for (let i = 1; i < railCount; i++) {
+    const t = i / railCount;
+    const rx = x + w * t;
+    const ry = y + h - Math.sin(t * Math.PI) * h * 0.75;
+    ctx.beginPath();
+    ctx.moveTo(rx, ry);
+    ctx.lineTo(rx, ry + h * 0.18);
+    ctx.stroke();
+  }
+}
+
+function drawSamuelBeckettBridge(ctx, x, y, w, h) {
+  const cx = x + w * 0.25;
+  ctx.strokeStyle = '#c7cdd6';
+  ctx.lineWidth = Math.max(3, w * 0.05);
+  ctx.beginPath();
+  ctx.moveTo(cx, y + h);
+  ctx.lineTo(cx, y);
+  ctx.stroke();
+
+  ctx.lineWidth = 2;
+  const anchors = [0.35, 0.55, 0.75, 0.95];
+  for (const t of anchors) {
+    ctx.beginPath();
+    ctx.moveTo(cx, y + h * 0.1);
+    ctx.lineTo(x + w * t, y + h);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = '#8b929c';
+  ctx.lineWidth = Math.max(2, h * 0.04);
+  ctx.beginPath();
+  ctx.moveTo(x, y + h);
+  ctx.lineTo(x + w, y + h);
+  ctx.stroke();
+}
+
+function drawBigBen(ctx, x, y, w, h) {
+  ctx.fillStyle = '#b8a568';
+  ctx.strokeStyle = '#4a4230';
+  ctx.lineWidth = 2;
+  const towerW = w * 0.6;
+  const tx = x + (w - towerW) / 2;
+  ctx.fillRect(tx, y + h * 0.25, towerW, h * 0.75);
+  ctx.strokeRect(tx, y + h * 0.25, towerW, h * 0.75);
+
+  ctx.beginPath();
+  ctx.moveTo(tx, y + h * 0.25);
+  ctx.lineTo(tx + towerW / 2, y);
+  ctx.lineTo(tx + towerW, y + h * 0.25);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = '#f2e6b8';
+  ctx.beginPath();
+  ctx.arc(tx + towerW / 2, y + h * 0.42, towerW * 0.28, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#4a4230';
+  ctx.stroke();
+}
+
+function drawLondonEye(ctx, x, y, w, h) {
+  const cx = x + w / 2;
+  const cy = y + h * 0.55;
+  const r = Math.min(w, h) * 0.42;
+
+  ctx.strokeStyle = '#9fb8c9';
+  ctx.lineWidth = Math.max(2, r * 0.08);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 8; i++) {
+    const angle = (Math.PI / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#6b8494';
+  ctx.lineWidth = Math.max(2, r * 0.1);
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.5, y + h);
+  ctx.lineTo(cx, cy);
+  ctx.lineTo(cx + r * 0.5, y + h);
+  ctx.stroke();
+}
+
+function drawPuertaAlcala(ctx, x, y, w, h) {
+  ctx.fillStyle = '#c7a373';
+  ctx.strokeStyle = '#5c4426';
+  ctx.lineWidth = 2;
+  const archW = w / 3;
+  for (let i = 0; i < 3; i++) {
+    const ax = x + i * archW;
+    const archH = i === 1 ? h * 0.85 : h * 0.65;
+    const pillarW = archW * 0.32;
+    ctx.fillRect(ax, y + h - archH, pillarW, archH);
+    ctx.strokeRect(ax, y + h - archH, pillarW, archH);
+    ctx.fillRect(ax + archW - pillarW, y + h - archH, pillarW, archH);
+    ctx.strokeRect(ax + archW - pillarW, y + h - archH, pillarW, archH);
+    ctx.beginPath();
+    ctx.arc(ax + archW / 2, y + h - archH, archW / 2 - pillarW * 0.2, Math.PI, 0);
+    ctx.stroke();
+  }
+}
+
+function drawMetropolisBuilding(ctx, x, y, w, h) {
+  ctx.fillStyle = '#c9b98a';
+  ctx.strokeStyle = '#4a4230';
+  ctx.lineWidth = 2;
+  const bodyH = h * 0.7;
+  ctx.fillRect(x + w * 0.15, y + h - bodyH, w * 0.7, bodyH);
+  ctx.strokeRect(x + w * 0.15, y + h - bodyH, w * 0.7, bodyH);
+
+  const domeCx = x + w / 2;
+  const domeCy = y + h - bodyH;
+  ctx.beginPath();
+  ctx.arc(domeCx, domeCy, w * 0.28, Math.PI, 0);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.strokeStyle = '#e0d09a';
+  ctx.lineWidth = Math.max(2, w * 0.04);
+  ctx.beginPath();
+  ctx.moveTo(domeCx, domeCy - w * 0.28);
+  ctx.lineTo(domeCx, domeCy - w * 0.5);
+  ctx.stroke();
+}
+
+function drawFrauenkirche(ctx, x, y, w, h) {
+  ctx.fillStyle = '#9c8a76';
+  ctx.strokeStyle = '#3a3126';
+  ctx.lineWidth = 2;
+  const towerW = w * 0.32;
+  for (const tx of [x, x + w - towerW]) {
+    ctx.fillRect(tx, y + h * 0.2, towerW, h * 0.8);
+    ctx.strokeRect(tx, y + h * 0.2, towerW, h * 0.8);
+    ctx.beginPath();
+    ctx.arc(tx + towerW / 2, y + h * 0.2, towerW / 2, Math.PI, 0);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#c7622e';
+    ctx.beginPath();
+    ctx.arc(tx + towerW / 2, y + h * 0.08, towerW * 0.28, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#9c8a76';
+  }
+}
+
+function drawNeuesRathaus(ctx, x, y, w, h) {
+  ctx.fillStyle = '#8a7d6b';
+  ctx.strokeStyle = '#3a3126';
+  ctx.lineWidth = 2;
+  const towerW = w * 0.34;
+  const tx = x + (w - towerW) / 2;
+  ctx.fillRect(tx, y + h * 0.15, towerW, h * 0.85);
+  ctx.strokeRect(tx, y + h * 0.15, towerW, h * 0.85);
+
+  ctx.beginPath();
+  ctx.moveTo(tx - towerW * 0.15, y + h * 0.15);
+  ctx.lineTo(tx + towerW / 2, y);
+  ctx.lineTo(tx + towerW * 1.15, y + h * 0.15);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = '#e0d5b8';
+  ctx.fillRect(tx + towerW * 0.3, y + h * 0.32, towerW * 0.4, towerW * 0.4);
+}
+
 // ----------------------- Player -----------------------
 class Player {
   constructor(x, y) {
@@ -189,20 +538,23 @@ class Enemy {
 
 // ----------------------- Obstacle -----------------------
 class Obstacle {
-  constructor(x, y, w, h) {
+  constructor(x, y, w, h, city) {
     this.x = x;
     this.y = y;
     this.w = w;
     this.h = h;
+    const variants = LANDMARKS[city] || LANDMARKS[CITIES[0]];
+    this.drawLandmark = variants[Math.floor(Math.random() * variants.length)];
   }
 
+  // Collision rect matches the box the landmark is drawn into, so hitboxes
+  // stay as tight as the plain-rectangle obstacles they replace.
   get rect() {
     return { x: this.x, y: this.y, w: this.w, h: this.h };
   }
 
   draw() {
-    ctx.fillStyle = '#757575';
-    ctx.fillRect(this.x, this.y, this.w, this.h);
+    this.drawLandmark(ctx, this.x, this.y, this.w, this.h);
   }
 }
 
@@ -310,6 +662,7 @@ class GameEngine {
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
     const safeRadius = 140;
+    const city = cityForLevel(this.levelManager.level);
     let attempts = 0;
     while (this.obstacles.length < count && attempts < 200) {
       attempts++;
@@ -320,7 +673,7 @@ class GameEngine {
       const centerX = x + w / 2;
       const centerY = y + h / 2;
       if (distance(centerX, centerY, cx, cy) < safeRadius) continue;
-      this.obstacles.push(new Obstacle(x, y, w, h));
+      this.obstacles.push(new Obstacle(x, y, w, h, city));
     }
   }
 
@@ -340,7 +693,8 @@ class GameEngine {
       this.player = new Player(canvas.width / 2, canvas.height / 2);
     }
 
-    this.showLevelBanner(n === 1 ? 'Level 1' : `Level ${n - 1} Complete!`);
+    const city = cityForLevel(n);
+    this.showLevelBanner(n === 1 ? `Level 1: ${city}` : `Level ${n - 1} Complete! Entering ${city}...`);
   }
 
   showLevelBanner(text) {
@@ -447,7 +801,7 @@ class GameEngine {
     }
     this.powerUps = this.powerUps.filter(p => !p.dead);
 
-    hudLevel.textContent = `Level: ${this.levelManager.level}`;
+    hudLevel.textContent = `Level ${this.levelManager.level}: ${cityForLevel(this.levelManager.level)}`;
   }
 
   levelUp() {
