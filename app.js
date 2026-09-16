@@ -95,8 +95,7 @@ CITIES.forEach((city) => {
 
 // ----------------------- Enemy images (Data layer: player class -> enemy sprite set) -----------------------
 // Enemies attacking the SE Warrior use the "SEenemy" set; enemies attacking the
-// RevOps Wizard use the "revopsenemy" set. Missing files (e.g. a not-yet-added
-// SEenemy3) simply fail to load and fall back to the plain rectangle sprite.
+// RevOps Wizard use the "revopsenemy" set.
 function loadImage(src) {
   const img = new Image();
   img.src = src;
@@ -104,8 +103,8 @@ function loadImage(src) {
 }
 
 const ENEMY_IMAGE_SETS = {
-  warrior: ['SEenemy1.jpeg', 'SEenemy2.png', 'SEenemy3.png'].map((name) => loadImage(`assets/images/${name}`)),
-  wizard: ['revopsenemy1.png', 'revopsenemy2.png', 'revopsenemy3.png'].map((name) => loadImage(`assets/images/${name}`)),
+  warrior: ['SEenemy1.jpeg', 'SEenemy2.png'].map((name) => loadImage(`assets/images/${name}`)),
+  wizard: ['revopsenemy1.png', 'revopsenemy2.png'].map((name) => loadImage(`assets/images/${name}`)),
 };
 
 // ----------------------- Landmark silhouettes (Client/UI: vector obstacle art) -----------------------
