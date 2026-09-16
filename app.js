@@ -85,6 +85,14 @@ function drawCityBackground(city) {
   ctx.restore();
 }
 
+// ----------------------- City obstacle images (Data layer: level -> obstacle sprite) -----------------------
+const CITY_OBSTACLE_IMAGES = {};
+CITIES.forEach((city) => {
+  const img = new Image();
+  img.src = `assets/images/obstacle-${city}.png`;
+  CITY_OBSTACLE_IMAGES[city] = img;
+});
+
 // ----------------------- Landmark silhouettes (Client/UI: vector obstacle art) -----------------------
 // Each drawer renders a simplified landmark silhouette inside the (x, y, w, h) box
 // that also defines the obstacle's collision rect, so visuals and hitboxes stay in sync.
@@ -638,17 +646,23 @@ class Obstacle {
     this.y = y;
     this.w = w;
     this.h = h;
+    this.image = CITY_OBSTACLE_IMAGES[city];
     const variants = LANDMARKS[city] || LANDMARKS[CITIES[0]];
     this.drawLandmark = variants[Math.floor(Math.random() * variants.length)];
   }
 
-  // Collision rect matches the box the landmark is drawn into, so hitboxes
-  // stay as tight as the plain-rectangle obstacles they replace.
+  // Collision rect matches the box the sprite/landmark is drawn into, so
+  // hitboxes stay as tight as the plain-rectangle obstacles they replace.
   get rect() {
     return { x: this.x, y: this.y, w: this.w, h: this.h };
   }
 
   draw() {
+    if (this.image && this.image.complete && this.image.naturalWidth > 0) {
+      ctx.drawImage(this.image, this.x, this.y, this.w, this.h);
+      return;
+    }
+    // Fallback while the city's uploaded sprite is still loading (or missing).
     this.drawLandmark(ctx, this.x, this.y, this.w, this.h);
   }
 }
