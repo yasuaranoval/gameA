@@ -1,0 +1,34 @@
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  font-family: system-ui, sans-serif;
+}
+
+.wrapper {
+  text-align: center;
+}
+
+#message {
+  font-size: 3rem;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+#change-btn {
+  font-size: 1.2rem;
+  padding: 0.6rem 1.4rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #ffffff;
+  color: #222;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+#change-btn:hover {
+  opacity: 0.9;
+}
