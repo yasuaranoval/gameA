@@ -9,9 +9,31 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=008">
+<link rel="stylesheet" href="style.css?v=009">
 </head>
 <body>
+<!-- Retro game box intro screen (Client/UI layer). Gates everything else until the box is clicked. -->
+<div id="introScreen" class="show">
+  <div class="intro-stage">
+    <button type="button" id="gameBox" class="game-box" aria-label="Click the game box to play">
+      <span class="game-box-spine">PERSONIO</span>
+      <span class="game-box-cover">
+        <span class="box-art-glow"></span>
+        <span class="box-title">Pipeline Paladins</span>
+        <span class="box-title-sub">The Quota Quest</span>
+        <span class="box-tagline">A Rev-Ops &amp; Solution Engineering Adventure</span>
+        <span class="box-characters">
+          <img src="SE%20Image.png" alt="SE Warrior" class="box-char box-char-left">
+          <span class="box-chest">🔒</span>
+          <img src="revops%20image.png" alt="RevOps Wizard" class="box-char box-char-right">
+        </span>
+        <span class="box-studio">Personio Game Studios</span>
+      </span>
+    </button>
+    <p class="intro-prompt">Click Box to Play</p>
+  </div>
+</div>
+
 <!-- Client/UI layer -->
 <canvas id="gameCanvas"></canvas>
 
@@ -26,7 +48,7 @@
 <div id="levelBanner"></div>
 
 <!-- Start / title screen (Client/UI layer). Gates the engine until "startGame()" runs. -->
-<div id="startScreen" class="show">
+<div id="startScreen">
   <div class="start-frame">
     <header class="start-header">
       <h1 class="game-title">Pipeline Paladins</h1>
@@ -79,6 +101,6 @@
   <button id="restartBtn">Restart</button>
 </div>
 
-<script src="app.js?v=011"></script>
+<script src="app.js?v=012"></script>
 </body>
 </html>

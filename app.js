@@ -89,7 +89,7 @@ function drawCityBackground(city) {
 const CITY_OBSTACLE_IMAGES = {};
 CITIES.forEach((city) => {
   const img = new Image();
-  img.src = `assets/images/obstacle-${city}.png`;
+  img.src = `assets/images/obstacle-${city}-removebg-preview.png`;
   CITY_OBSTACLE_IMAGES[city] = img;
 });
 
@@ -1023,6 +1023,22 @@ class GameEngine {
   }
 }
 
+// ----------------------- Intro box screen (Client/UI + Logic/Middleware) -----------------------
+const introScreen = document.getElementById('introScreen');
+const gameBox = document.getElementById('gameBox');
+
+function openIntroBox() {
+  if (gameBox.classList.contains('opening')) return;
+  gameBox.classList.add('opening');
+  introScreen.classList.add('fade-out');
+  window.setTimeout(() => {
+    introScreen.classList.remove('show', 'fade-out');
+    startScreen.classList.add('show');
+    window.addEventListener('keydown', onStartKey);
+  }, 950);
+}
+gameBox.addEventListener('click', openIntroBox);
+
 // ----------------------- Start screen (Client/UI + Logic/Middleware) -----------------------
 const startScreen = document.getElementById('startScreen');
 const startBtn = document.getElementById('startBtn');
@@ -1082,7 +1098,6 @@ function onStartKey(e) {
     startGame();
   }
 }
-window.addEventListener('keydown', onStartKey);
 startBtn.addEventListener('click', startGame);
 
 let engine = null;
