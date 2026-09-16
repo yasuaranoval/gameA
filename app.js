@@ -36,6 +36,10 @@ function rectsOverlap(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
+function formatCurrency(amount) {
+  return `€${Math.round(amount).toLocaleString('en-US')}`;
+}
+
 function distance(x1, y1, x2, y2) {
   return Math.hypot(x2 - x1, y2 - y1);
 }
@@ -524,6 +528,35 @@ class Bullet {
   }
 }
 
+// ----------------------- Euro pop (deal-closed visual effect) -----------------------
+const EURO_POP_LIFESPAN = 30; // 0.5s at 60fps
+
+class EuroPop {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.age = 0;
+    this.dead = false;
+  }
+
+  update() {
+    this.age++;
+    this.y -= 1.6;
+    if (this.age >= EURO_POP_LIFESPAN) this.dead = true;
+  }
+
+  draw() {
+    const progress = this.age / EURO_POP_LIFESPAN;
+    ctx.save();
+    ctx.globalAlpha = 1 - progress;
+    ctx.fillStyle = '#00FF66';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('€', this.x, this.y);
+    ctx.restore();
+  }
+}
+
 // ----------------------- Enemy -----------------------
 class Enemy {
   constructor(x, y, speed) {
@@ -660,6 +693,7 @@ class GameEngine {
     this.enemies = [];
     this.obstacles = [];
     this.powerUps = [];
+    this.euroPops = [];
     this.levelManager = new LevelManager();
     this.score = 0;
     this.highScore = Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0;
@@ -672,7 +706,7 @@ class GameEngine {
     this.awaitingLevelStart = false;
     this.pendingLevel = null;
 
-    hudHighScore.textContent = `High Score: ${this.highScore}`;
+    hudHighScore.textContent = `Record Target: ${formatCurrency(this.highScore)}`;
 
     this.bindInput();
     this.startLevel(1, true);
@@ -831,7 +865,8 @@ class GameEngine {
           bullet.dead = true;
           enemy.dead = true;
           this.score += Math.round(100 * this.player.scoreMultiplier);
-          hudScore.textContent = `Score: ${this.score}`;
+          hudScore.textContent = `ARR Closed: ${formatCurrency(this.score)}`;
+          this.euroPops.push(new EuroPop(enemy.x, enemy.y));
 
           if (Math.random() < this.levelManager.powerUpDropChance()) {
             const type = Math.random() < 0.5 ? 'rapidFire' : 'speedBoost';
@@ -867,6 +902,9 @@ class GameEngine {
     }
     this.powerUps = this.powerUps.filter(p => !p.dead);
 
+    this.euroPops.forEach(p => p.update());
+    this.euroPops = this.euroPops.filter(p => !p.dead);
+
     hudLevel.textContent = `Level ${this.levelManager.level}: ${cityForLevel(this.levelManager.level)}`;
   }
 
@@ -884,9 +922,9 @@ class GameEngine {
     if (this.score > this.highScore) {
       this.highScore = this.score;
       localStorage.setItem(HIGH_SCORE_KEY, String(this.highScore));
-      hudHighScore.textContent = `High Score: ${this.highScore}`;
+      hudHighScore.textContent = `Record Target: ${formatCurrency(this.highScore)}`;
     }
-    finalScoreEl.textContent = `Final Score: ${this.score}`;
+    finalScoreEl.textContent = `Final Score: ${formatCurrency(this.score)}`;
     gameOverScreen.classList.add('show');
   }
 
@@ -895,11 +933,12 @@ class GameEngine {
     this.gameOver = false;
     this.awaitingLevelStart = false;
     this.pendingLevel = null;
-    hudScore.textContent = 'Score: 0';
+    hudScore.textContent = `ARR Closed: ${formatCurrency(0)}`;
     gameOverScreen.classList.remove('show');
     levelBanner.classList.remove('waiting');
     powerupBanner.textContent = '';
     this.enemySpawnTimer = 0;
+    this.euroPops = [];
     this.startLevel(1, true);
   }
 
@@ -910,6 +949,7 @@ class GameEngine {
     this.powerUps.forEach(p => p.draw());
     this.enemies.forEach(e => e.draw());
     this.bullets.forEach(b => b.draw());
+    this.euroPops.forEach(p => p.draw());
     if (this.player) this.player.draw();
   }
 
