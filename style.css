@@ -45,6 +45,17 @@ html, body {
 #levelBanner.show {
   opacity: 1;
 }
+#levelBanner .hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 18px;
+  font-weight: normal;
+  color: #eaeaf5;
+}
+#levelBanner.waiting {
+  pointer-events: auto;
+  cursor: pointer;
+}
 #gameOverScreen {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;

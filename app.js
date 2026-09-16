@@ -593,8 +593,12 @@ class LevelManager {
     return n === 1 ? 10 : 10 + n * 5;
   }
 
+  // Level 1 -> 2 gets a gentler speed bump; growth returns to the normal
+  // 1.15x-per-level rate from level 2 onward.
   enemySpeedMultiplier() {
-    return Math.pow(1.15, this.level - 1);
+    if (this.level <= 1) return 1;
+    if (this.level === 2) return 1.06;
+    return 1.06 * Math.pow(1.15, this.level - 2);
   }
 
   powerUpDropChance() {
@@ -629,6 +633,8 @@ class GameEngine {
     this.enemySpawnInterval = 90; // frames
     this.gameOver = false;
     this.bannerTimer = 0;
+    this.awaitingLevelStart = false;
+    this.pendingLevel = null;
 
     hudHighScore.textContent = `High Score: ${this.highScore}`;
 
@@ -642,6 +648,14 @@ class GameEngine {
       if (e.key.toLowerCase() === 'r' && this.gameOver) {
         this.restart();
       }
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (this.awaitingLevelStart) {
+          this.beginPendingLevel();
+        } else {
+          this.fireRequested = true;
+        }
+      }
     });
     window.addEventListener('keyup', (e) => {
       this.keys[e.key.toLowerCase()] = false;
@@ -652,6 +666,10 @@ class GameEngine {
       this.mouse.y = e.clientY - rect.top;
     });
     canvas.addEventListener('mousedown', () => {
+      if (this.awaitingLevelStart) {
+        this.beginPendingLevel();
+        return;
+      }
       this.fireRequested = true;
     });
     restartBtn.addEventListener('click', () => this.restart());
@@ -683,6 +701,7 @@ class GameEngine {
     this.enemies = [];
     this.bullets = [];
     this.powerUps = [];
+    // Randomized each call, so obstacle count/positions differ level to level.
     const obstacleCount = 2 + Math.floor(Math.random() * 3); // 2-4
     this.spawnObstacles(obstacleCount);
 
@@ -693,14 +712,24 @@ class GameEngine {
       this.player = new Player(canvas.width / 2, canvas.height / 2);
     }
 
-    const city = cityForLevel(n);
-    this.showLevelBanner(n === 1 ? `Level 1: ${city}` : `Level ${n - 1} Complete! Entering ${city}...`);
+    this.showLevelBanner(`Level ${n}`, false);
   }
 
-  showLevelBanner(text) {
-    levelBanner.textContent = text;
+  // persist=true keeps the banner up (with a "click to continue" hint) and
+  // pauses the game via awaitingLevelStart until the player clicks.
+  showLevelBanner(text, persist) {
+    levelBanner.innerHTML = persist ? `${text}<br><span class="hint">Click to continue</span>` : text;
+    levelBanner.classList.toggle('waiting', !!persist);
     levelBanner.classList.add('show');
-    this.bannerTimer = 90;
+    this.bannerTimer = persist ? 0 : 90;
+  }
+
+  beginPendingLevel() {
+    this.awaitingLevelStart = false;
+    const nextLevel = this.pendingLevel;
+    this.pendingLevel = null;
+    levelBanner.classList.remove('waiting');
+    this.startLevel(nextLevel, false);
   }
 
   spawnEnemy() {
@@ -723,6 +752,7 @@ class GameEngine {
 
   update() {
     if (this.gameOver) return;
+    if (this.awaitingLevelStart) return;
 
     if (this.bannerTimer > 0) {
       this.bannerTimer--;
@@ -805,9 +835,12 @@ class GameEngine {
   }
 
   levelUp() {
-    const nextLevel = this.levelManager.level + 1;
+    const completedLevel = this.levelManager.level;
+    this.pendingLevel = completedLevel + 1;
+    this.awaitingLevelStart = true;
     this.enemies = [];
-    this.startLevel(nextLevel, false);
+    this.bullets = [];
+    this.showLevelBanner(`Level ${completedLevel} Complete!`, true);
   }
 
   triggerGameOver() {
@@ -824,8 +857,11 @@ class GameEngine {
   restart() {
     this.score = 0;
     this.gameOver = false;
+    this.awaitingLevelStart = false;
+    this.pendingLevel = null;
     hudScore.textContent = 'Score: 0';
     gameOverScreen.classList.remove('show');
+    levelBanner.classList.remove('waiting');
     powerupBanner.textContent = '';
     this.enemySpawnTimer = 0;
     this.startLevel(1, true);
