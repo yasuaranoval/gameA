@@ -58,6 +58,33 @@ function cityForLevel(level) {
   return CITIES[(level - 1) % CITIES.length];
 }
 
+// ----------------------- City backgrounds (Data layer: level -> background image) -----------------------
+const CITY_BACKGROUNDS = {};
+CITIES.forEach((city) => {
+  const img = new Image();
+  img.src = `assets/images/background-${city}.png`;
+  CITY_BACKGROUNDS[city] = img;
+});
+const BACKGROUND_OPACITY = 0.15;
+
+// Draws the city background image scaled to fit inside the canvas without
+// stretching (contain-fit), centered, and at low opacity so it doesn't clutter gameplay.
+function drawCityBackground(city) {
+  const img = CITY_BACKGROUNDS[city];
+  if (!img || !img.complete || img.naturalWidth === 0) return;
+
+  const scale = Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+  const drawW = img.naturalWidth * scale;
+  const drawH = img.naturalHeight * scale;
+  const drawX = (canvas.width - drawW) / 2;
+  const drawY = (canvas.height - drawH) / 2;
+
+  ctx.save();
+  ctx.globalAlpha = BACKGROUND_OPACITY;
+  ctx.drawImage(img, drawX, drawY, drawW, drawH);
+  ctx.restore();
+}
+
 // ----------------------- Landmark silhouettes (Client/UI: vector obstacle art) -----------------------
 // Each drawer renders a simplified landmark silhouette inside the (x, y, w, h) box
 // that also defines the obstacle's collision rect, so visuals and hitboxes stay in sync.
@@ -944,6 +971,8 @@ class GameEngine {
 
   draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawCityBackground(cityForLevel(this.levelManager.level));
 
     this.obstacles.forEach(o => o.draw());
     this.powerUps.forEach(p => p.draw());
