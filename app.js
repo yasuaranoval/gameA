@@ -93,6 +93,21 @@ CITIES.forEach((city) => {
   CITY_OBSTACLE_IMAGES[city] = img;
 });
 
+// ----------------------- Enemy images (Data layer: player class -> enemy sprite set) -----------------------
+// Enemies attacking the SE Warrior use the "SEenemy" set; enemies attacking the
+// RevOps Wizard use the "revopsenemy" set. Missing files (e.g. a not-yet-added
+// SEenemy3) simply fail to load and fall back to the plain rectangle sprite.
+function loadImage(src) {
+  const img = new Image();
+  img.src = src;
+  return img;
+}
+
+const ENEMY_IMAGE_SETS = {
+  warrior: ['SEenemy1.jpeg', 'SEenemy2.png', 'SEenemy3.png'].map((name) => loadImage(`assets/images/${name}`)),
+  wizard: ['revopsenemy1.png', 'revopsenemy2.png', 'revopsenemy3.png'].map((name) => loadImage(`assets/images/${name}`)),
+};
+
 // ----------------------- Landmark silhouettes (Client/UI: vector obstacle art) -----------------------
 // Each drawer renders a simplified landmark silhouette inside the (x, y, w, h) box
 // that also defines the obstacle's collision rect, so visuals and hitboxes stay in sync.
@@ -594,11 +609,12 @@ class EuroPop {
 
 // ----------------------- Enemy -----------------------
 class Enemy {
-  constructor(x, y, speed) {
+  constructor(x, y, speed, image) {
     this.x = x;
     this.y = y;
     this.size = 22;
     this.speed = speed;
+    this.image = image;
     this.dead = false;
   }
 
@@ -622,6 +638,9 @@ class Enemy {
   }
 
   draw() {
+    if (this.image && drawCharacterImage(this.image, this.x, this.y, 48)) return;
+
+    // Fallback while the enemy's sprite is still loading (or missing).
     const width = 52;
     const height = 38;
     const left = this.x - width / 2;
@@ -852,7 +871,9 @@ class GameEngine {
     else { x = -30; y = Math.random() * canvas.height; }
 
     const speed = 1.6 * this.levelManager.enemySpeedMultiplier();
-    this.enemies.push(new Enemy(x, y, speed));
+    const enemyImages = ENEMY_IMAGE_SETS[this.classId] || ENEMY_IMAGE_SETS[DEFAULT_CLASS_ID];
+    const image = enemyImages[Math.floor(Math.random() * enemyImages.length)];
+    this.enemies.push(new Enemy(x, y, speed, image));
   }
 
   fireBullet() {
