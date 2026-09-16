@@ -6,16 +6,14 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="googlebot" content="noindex, nofollow">
 <title>Asteroids MVP</title>
-<link rel="stylesheet" href="style.css?v=004">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=005">
 </head>
 <body>
 <!-- Client/UI layer -->
 <canvas id="gameCanvas"></canvas>
-
-<div class="character-assets" aria-hidden="true">
-  <img id="seCharacterImage" src="SE%20Image.png" alt="">
-  <img id="revopsCharacterImage" src="revops%20image.png" alt="">
-</div>
 
 <div id="hud">
   <span id="hudLevel">Level 1: Amsterdam</span>
@@ -27,19 +25,49 @@
 
 <div id="levelBanner"></div>
 
-<div id="characterSelectScreen" class="overlay-screen show">
-  <div class="character-select-panel">
-    <p class="eyebrow">Choose your fighter</p>
-    <h1>Who is taking on the tickets?</h1>
-    <div class="character-options">
-      <button class="character-option" data-character="se">
-        <img src="SE%20Image.png" alt="Sales Engineer character">
-        <span>Sales Engineer</span>
+<!-- Start / title screen (Client/UI layer). Gates the engine until "startGame()" runs. -->
+<div id="startScreen" class="show">
+  <div class="start-frame">
+    <header class="start-header">
+      <h1 class="game-title">Pipeline Paladins</h1>
+      <p class="game-title-sub">The Quota Quest</p>
+      <p class="game-subtitle">A Rev-Ops &amp; Solution Engineering Adventure</p>
+    </header>
+
+    <div class="start-body">
+      <button type="button" class="class-card" id="cardWarrior" data-class="warrior" aria-pressed="true">
+        <span class="class-portrait"><img id="seCharacterImage" src="SE%20Image.png" alt="SE Warrior"></span>
+        <span class="class-name">SE Warrior</span>
+        <span class="class-weapon">Sword of Demos</span>
+        <span class="class-role">Front-Line Brawler</span>
+        <span class="class-flavor">Shatter objections up close. Proof of Concept stuns!</span>
+        <span class="class-stats">Speed: heavy hitter &middot; Fire Rate: slow &middot; Score x1</span>
+        <span class="class-enemy">📊 Excel Goblin</span>
       </button>
-      <button class="character-option" data-character="revops">
-        <img src="revops%20image.png" alt="RevOps character">
-        <span>RevOps</span>
+
+      <section class="mission-panel">
+        <h2>Mission Overview</h2>
+        <p>The EMEA pipeline is <span class="hl">OVERFLOWING</span> with chaotic data and manual processes! Spreadsheet Monsters have overrun every office from <span class="hl">AMSTERDAM</span> to <span class="hl">MUNICH</span>!</p>
+        <p>Join the RevOps and SE warriors on a legendary quest to <span class="hl">INSTALL</span> the glowing <span class="hl">PERSONIO CORE</span> in all seven cities!</p>
+        <p>Clear each <span class="hl">CITY</span>, secure valuable <span class="hl">OPPORTUNITIES</span> (Opps), smash tricky <span class="hl">OBJECTIONS</span>, and hit your maximum <span class="hl">QUOTAS</span> for ultimate <span class="hl">GLORY</span>!</p>
+        <p>Don't let the pipeline become a <span class="hl">PIPELINE</span> of peril!</p>
+      </section>
+
+      <button type="button" class="class-card" id="cardWizard" data-class="wizard" aria-pressed="false">
+        <span class="class-portrait"><img id="revopsCharacterImage" src="revops%20image.png" alt="RevOps Wizard"></span>
+        <span class="class-name">RevOps Wizard</span>
+        <span class="class-weapon">Staff of Automation</span>
+        <span class="class-role">Data Tactician</span>
+        <span class="class-flavor">Blast chaos from afar. Clean Data boosts your score!</span>
+        <span class="class-stats">Speed: nimble &middot; Fire Rate: rapid &middot; Score x1.25</span>
+        <span class="class-enemy">🍝 Spaghetti Code</span>
       </button>
+    </div>
+
+    <div class="start-footer">
+      <button type="button" id="startBtn" class="press-start">PRESS START</button>
+      <p class="config-line">CONFIG: SOUND | BGM | SFX | RESET</p>
+      <div id="controlsLegend" class="controls-legend"></div>
     </div>
   </div>
 </div>
@@ -51,6 +79,6 @@
   <button id="restartBtn">Restart</button>
 </div>
 
-<script src="app.js?v=005"></script>
+<script src="app.js?v=006"></script>
 </body>
 </html>

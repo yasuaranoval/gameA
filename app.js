@@ -22,10 +22,15 @@ const restartBtn = document.getElementById('restartBtn');
 const powerupBanner = document.getElementById('powerupBanner');
 const seCharacterImage = document.getElementById('seCharacterImage');
 const revopsCharacterImage = document.getElementById('revopsCharacterImage');
-const characterSelectScreen = document.getElementById('characterSelectScreen');
-const characterOptions = document.querySelectorAll('.character-option');
 
 const HIGH_SCORE_KEY = 'asteroidsMvpHighScore';
+
+// ----------------------- Player classes (Data layer: stat config) -----------------------
+const PLAYER_CLASSES = {
+  warrior: { id: 'warrior', baseSpeed: 5.2, baseFireRate: 18, scoreMultiplier: 1,    color: '#B0BEC5', image: seCharacterImage },
+  wizard:  { id: 'wizard',  baseSpeed: 3.4, baseFireRate: 8,  scoreMultiplier: 1.25, color: '#AB47BC', image: revopsCharacterImage },
+};
+const DEFAULT_CLASS_ID = 'warrior';
 
 function rectsOverlap(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -393,18 +398,21 @@ function drawNeuesRathaus(ctx, x, y, w, h) {
 
 // ----------------------- Player -----------------------
 class Player {
-  constructor(x, y, character) {
+  constructor(x, y, classId) {
     this.x = x;
     this.y = y;
-    this.character = character;
-    this.image = character === 'revops' ? revopsCharacterImage : seCharacterImage;
+    this.classId = classId;
+    const cls = PLAYER_CLASSES[classId] || PLAYER_CLASSES[DEFAULT_CLASS_ID];
+    this.image = cls.image;
+    this.color = cls.color;
+    this.scoreMultiplier = cls.scoreMultiplier;
     this.size = 24;
-    this.baseSpeed = 4;
+    this.baseSpeed = cls.baseSpeed;
     this.speed = this.baseSpeed;
     this.vx = 0;
     this.vy = 0;
     this.fireCooldown = 0;
-    this.baseFireRate = 12; // frames between shots
+    this.baseFireRate = cls.baseFireRate; // frames between shots
     this.fireRate = this.baseFireRate;
     this.speedBoostTimer = 0;
     this.rapidFireTimer = 0;
@@ -480,7 +488,7 @@ class Player {
 
   draw() {
     if (!drawCharacterImage(this.image, this.x, this.y, 86)) {
-      ctx.fillStyle = '#4caf50';
+      ctx.fillStyle = this.color;
       ctx.fillRect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
     }
   }
@@ -645,8 +653,9 @@ class LevelManager {
 
 // ----------------------- GameEngine -----------------------
 class GameEngine {
-  constructor() {
+  constructor(classId) {
     this.player = null;
+    this.classId = classId || DEFAULT_CLASS_ID;
     this.bullets = [];
     this.enemies = [];
     this.obstacles = [];
@@ -662,11 +671,11 @@ class GameEngine {
     this.bannerTimer = 0;
     this.awaitingLevelStart = false;
     this.pendingLevel = null;
-    this.selectedCharacter = null;
 
     hudHighScore.textContent = `High Score: ${this.highScore}`;
 
     this.bindInput();
+    this.startLevel(1, true);
   }
 
   bindInput() {
@@ -700,15 +709,6 @@ class GameEngine {
       this.fireRequested = true;
     });
     restartBtn.addEventListener('click', () => this.restart());
-    characterOptions.forEach(option => {
-      option.addEventListener('click', () => this.chooseCharacter(option.dataset.character));
-    });
-  }
-
-  chooseCharacter(character) {
-    this.selectedCharacter = character;
-    characterSelectScreen.classList.remove('show');
-    this.startLevel(1, true);
   }
 
   spawnObstacles(count) {
@@ -745,7 +745,7 @@ class GameEngine {
       this.player.x = canvas.width / 2;
       this.player.y = canvas.height / 2;
     } else {
-      this.player = new Player(canvas.width / 2, canvas.height / 2, this.selectedCharacter);
+      this.player = new Player(canvas.width / 2, canvas.height / 2, this.classId);
     }
 
     this.showLevelBanner(`Level ${n}`, false);
@@ -830,7 +830,7 @@ class GameEngine {
         if (rectsOverlap(bullet.rect, enemy.rect)) {
           bullet.dead = true;
           enemy.dead = true;
-          this.score += 100;
+          this.score += Math.round(100 * this.player.scoreMultiplier);
           hudScore.textContent = `Score: ${this.score}`;
 
           if (Math.random() < this.levelManager.powerUpDropChance()) {
@@ -900,8 +900,7 @@ class GameEngine {
     levelBanner.classList.remove('waiting');
     powerupBanner.textContent = '';
     this.enemySpawnTimer = 0;
-    this.player = null;
-    characterSelectScreen.classList.add('show');
+    this.startLevel(1, true);
   }
 
   draw() {
@@ -921,5 +920,74 @@ class GameEngine {
   }
 }
 
-const engine = new GameEngine();
-engine.loop();
+// ----------------------- Start screen (Client/UI + Logic/Middleware) -----------------------
+const startScreen = document.getElementById('startScreen');
+const startBtn = document.getElementById('startBtn');
+const classCards = document.querySelectorAll('.class-card');
+const controlsLegendEl = document.getElementById('controlsLegend');
+
+const CONTROLS = [
+  { key: 'WASD / Arrows', action: 'Move', state: 'active' },
+  { key: 'Mouse', action: 'Aim', state: 'active' },
+  { key: 'Click / Space', action: 'Data Blast (fire)', state: 'active' },
+  { key: 'Click / Space', action: 'Continue to next city', state: 'active' },
+  { key: 'R', action: 'Retry after game over', state: 'active' },
+  { key: 'B', action: 'Melee Strike', state: 'locked' },
+  { key: 'X', action: 'Items', state: 'locked' },
+];
+
+function renderControlsLegend() {
+  controlsLegendEl.innerHTML = CONTROLS.map(c => `
+    <div class="control-row${c.state === 'locked' ? ' locked' : ''}">
+      <span class="control-key">${c.key}</span>
+      <span class="control-action">${c.action}</span>
+      ${c.state === 'locked' ? '<span class="control-tag">soon</span>' : ''}
+    </div>
+  `).join('');
+}
+renderControlsLegend();
+
+let selectedClassId = DEFAULT_CLASS_ID;
+
+function selectClass(classId) {
+  selectedClassId = classId;
+  classCards.forEach(card => {
+    const isSelected = card.dataset.class === classId;
+    card.classList.toggle('selected', isSelected);
+    card.setAttribute('aria-pressed', String(isSelected));
+  });
+}
+selectClass(DEFAULT_CLASS_ID);
+
+classCards.forEach(card => {
+  card.addEventListener('click', () => selectClass(card.dataset.class));
+});
+
+function onStartKey(e) {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    const ids = Object.keys(PLAYER_CLASSES);
+    const idx = ids.indexOf(selectedClassId);
+    const nextIdx = e.key === 'ArrowLeft'
+      ? (idx - 1 + ids.length) % ids.length
+      : (idx + 1) % ids.length;
+    selectClass(ids[nextIdx]);
+    return;
+  }
+  if (e.key === 'Enter' || e.code === 'Space') {
+    e.preventDefault();
+    startGame();
+  }
+}
+window.addEventListener('keydown', onStartKey);
+startBtn.addEventListener('click', startGame);
+
+let engine = null;
+
+function startGame() {
+  if (engine) return;
+  window.removeEventListener('keydown', onStartKey);
+  startScreen.classList.remove('show');
+  engine = new GameEngine(selectedClassId);
+  engine.loop();
+}
