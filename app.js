@@ -296,6 +296,14 @@ class GameEngine {
       if (e.key.toLowerCase() === 'r' && this.gameOver) {
         this.restart();
       }
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (this.awaitingLevelStart) {
+          this.beginPendingLevel();
+        } else {
+          this.fireRequested = true;
+        }
+      }
     });
     window.addEventListener('keyup', (e) => {
       this.keys[e.key.toLowerCase()] = false;
